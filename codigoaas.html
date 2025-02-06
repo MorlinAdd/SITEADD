@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Substituir Códigos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        h1 { text-align: center; color: #333; }
+        textarea, input[type="file"] { width: 100%; margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #0056b3; }
+        .progress-bar { height: 20px; background: #007bff; border-radius: 5px; text-align: center; color: white; line-height: 20px; width: 0; }
+        .output { margin-top: 20px; padding: 10px; background: #e9ecef; border-radius: 5px; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Substituir Códigos</h1>
+        <textarea id="consincoCodes" rows="5" placeholder="Digite os códigos Consinco..."></textarea>
+        <input type="file" id="uploadFile" accept=".xlsx">
+        <div>
+            <label><input type="checkbox" id="auditPresence"> Auditoria de Presença</label>
+            <label><input type="checkbox" id="auditTag"> Auditoria de Etiqueta</label>
+        </div>
+        <button onclick="processCodes()">Processar</button>
+        <button onclick="clearFields()">Limpar</button>
+        <button onclick="copyResults()">Copiar Resultados</button>
+        <div class="progress-bar" id="progressBar">0%</div>
+        <div class="output" id="output"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        function processCodes() {
+            const input = document.getElementById('consincoCodes').value;
+            const fileInput = document.getElementById('uploadFile').files[0];
+            const outputDiv = document.getElementById('output');
+            const progressBar = document.getElementById('progressBar');
+            const auditTag = document.getElementById('auditTag').checked;
+            if (!input) return alert("Insira os códigos Consinco.");
+            if (!fileInput) return alert("Carregue um arquivo XLSX.");
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(sheet);
+                
+                const mapping = jsonData.reduce((acc, row) => {
+                    if (row["Consinco"] && row["Código Pesaveis"]) {
+                        acc[row["Consinco"].toString().trim()] = row["Código Pesaveis"].toString().trim();
+                    }
+                    return acc;
+                }, {});
+                
+                const codes = input.split('\n').map(code => code.trim()).filter(code => code);
+                outputDiv.innerHTML = "";
+                let processed = 0;
+                
+                codes.forEach((code, index) => {
+                    setTimeout(() => {
+                        let result = mapping[code] || `${code}0001`;
+                        if (auditTag) {
+                            const randomNum = Math.floor(Math.random() * 90 + 10);
+                            result = `vp:${code}:p:${randomNum}`;
+                        }
+                        outputDiv.innerHTML += `<div>${result}</div>`;
+                        processed++;
+                        progressBar.style.width = `${(processed / codes.length) * 100}%`;
+                        progressBar.textContent = `${Math.floor((processed / codes.length) * 100)}%`;
+                    }, index * 100);
+                });
+            };
+            reader.readAsArrayBuffer(fileInput);
+        }
+
+        function clearFields() {
+            document.getElementById('consincoCodes').value = "";
+            document.getElementById('output').innerHTML = "";
+            document.getElementById('progressBar').style.width = "0%";
+            document.getElementById('progressBar').textContent = "0%";
+        }
+
+        function copyResults() {
+            const outputDiv = document.getElementById('output');
+            const range = document.createRange();
+            range.selectNode(outputDiv);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            
+            try {
+                document.execCommand('copy');
+                alert('Resultados copiados para a área de transferência!');
+            } catch (err) {
+                alert('Erro ao copiar resultados.');
+            }
+            window.getSelection().removeAllRanges();
+        }
+    </script>
+</body>
+</html>
