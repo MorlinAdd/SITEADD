@@ -76,7 +76,7 @@
                         let result = mapping[code] || `${code}0001`;
                         if (auditTag) {
                             const randomNum = Math.floor(Math.random() * 90 + 10);
-                            result = `vp:${code}:p:${randomNum}`;
+                            result = `:p:${code}:vp:${randomNum}`;
                         }
                         outputDiv.innerHTML += `<div>${result}</div>`;
                         processed++;
