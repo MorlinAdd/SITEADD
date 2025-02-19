@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auditoria de Códigos</title>
+    <title>Auditoria</title> <!-- Título do site atualizado -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -55,9 +55,7 @@
         }
 
         textarea,
-        input[type="file"],
-        input[type="number"],
-        select {
+        input[type="file"] {
             width: 100%;
             margin: 10px 0;
             padding: 10px;
@@ -100,18 +98,26 @@
         .qrcode {
             margin: 20px 0; /* Espaçamento entre QR Codes */
             text-align: center; /* Centraliza cada QR Code na lista */
+            display: none; /* Oculta inicialmente */
         }
 
-        ol {
-            padding-left: 20px; /* Adiciona recuo à lista */
+        .qrcode.active {
+            display: block; /* Mostra apenas o QR Code ativo */
         }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
     </style>
 </head>
 
 <body>
 
     <div class="container">
-        <h1>Auditoria de Códigos</h1>
+        <h1>Auditoria</h1> <!-- Título visível na página -->
         <div class="tabs">
             <button class="tab-button" onclick="showTab('tab1')">Auditoria de Presença</button>
             <button class="tab-button" onclick="showTab('tab2')">Auditoria de Etiqueta</button>
@@ -140,15 +146,14 @@
 
         <div id="tab3" class="tab">
             <textarea id="qrcodeText" rows="5" placeholder="Cole ou digite o texto aqui..."></textarea>
-            <select id="redundancyLevel">
-                <option value="15">Média (15%)</option>
-                <option value="25">Alta (25%)</option>
-                <option value="30">Máxima (30%)</option>
-            </select>
-            <input type="number" id="pixelsPerPoint" placeholder="Pixels por ponto" max="32" min="1" value="10" readonly> <!-- Aumentado o valor padrão -->
-            <input type="number" id="margin" placeholder="Margem em pixels" max="10" min="0" value="2" readonly>
             <button onclick="generateQRCodes()">Gerar QR Codes</button>
-            <div class="output" id="output3"></div>
+            <div class="output" id="output3">
+                <div class="navigation">
+                    <button id="prevButton" onclick="prevQRCode()">❮ Anterior</button>
+                    <button id="nextButton" onclick="nextQRCode()">Próximo ❯</button>
+                </div>
+                <div id="qrcodeContainer"></div>
+            </div>
         </div>
     </div>
 
@@ -156,12 +161,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
     <script>
+        let currentQRCodeIndex = 0; // Índice do QR Code atual
+        let qrcodeLines = []; // Armazena os QR Codes gerados
+
         document.addEventListener('DOMContentLoaded', function () {
             function showTab(tabId) {
                 document.querySelectorAll('.tab').forEach(tab => {
                     tab.classList.remove('active');
                 });
                 document.getElementById(tabId).classList.add('active');
+                clearQRCodeDisplay(); // Limpa a visualização de QR Codes ao mudar de aba
             }
 
             window.showTab = showTab; // Make showTab accessible globally
@@ -264,7 +273,7 @@
                     document.getElementById('progressBar2').textContent = "0%";
                 } else {
                     document.getElementById('qrcodeText').value = "";
-                    document.getElementById('output3').innerHTML = "";
+                    clearQRCodeDisplay();
                 }
             }
 
@@ -290,13 +299,11 @@
 
             function generateQRCodes() {
                 const textInput = document.getElementById('qrcodeText').value;
-                const redundancyLevel = document.getElementById('redundancyLevel').value;
-                const pixelsPerPoint = document.getElementById('pixelsPerPoint').value;
-                const margin = document.getElementById('margin').value;
-                const outputDiv = document.getElementById('output3');
+                const outputDiv = document.getElementById('qrcodeContainer');
 
-                outputDiv.innerHTML = "<ol></ol>"; // Limpa a saída anterior e cria uma lista ordenada
-                const outputList = outputDiv.querySelector('ol');
+                outputDiv.innerHTML = ""; // Limpa a saída anterior
+                qrcodeLines = []; // Reseta a lista de QR Codes
+                currentQRCodeIndex = 0; // Reseta o índice atual
 
                 const lines = textInput.split('\n').filter(line => line.trim() !== "");
                 if (lines.length > 1000) {
@@ -305,20 +312,54 @@
                 }
 
                 lines.forEach(line => {
-                    const qrcodeDiv = document.createElement('li'); // Usar <li> para lista
+                    const qrcodeDiv = document.createElement('div'); // Usar <div> para QR Code
                     qrcodeDiv.className = 'qrcode';
                     $(qrcodeDiv).qrcode({
                         text: line,
-                        width: pixelsPerPoint * 10, // Tamanho do QR Code
-                        height: pixelsPerPoint * 10, // Tamanho do QR Code
-                        margin: margin,
-                        ecLevel: (redundancyLevel === "15" ? "M" : redundancyLevel === "25" ? "Q" : "H")
+                        width: 200, // Tamanho fixo do QR Code
+                        height: 200, // Tamanho fixo do QR Code
                     });
-                    outputList.appendChild(qrcodeDiv);
+                    outputDiv.appendChild(qrcodeDiv);
+                    qrcodeLines.push(qrcodeDiv); // Armazena o QR Code gerado
                 });
+
+                showQRCode(currentQRCodeIndex); // Mostra o primeiro QR Code
             }
 
             window.generateQRCodes = generateQRCodes; // Make generateQRCodes accessible globally
+
+            function showQRCode(index) {
+                qrcodeLines.forEach((qrcode, i) => {
+                    qrcode.classList.toggle('active', i === index);
+                });
+                updateNavigationButtons();
+            }
+
+            function updateNavigationButtons() {
+                document.getElementById('prevButton').disabled = currentQRCodeIndex === 0;
+                document.getElementById('nextButton').disabled = currentQRCodeIndex === qrcodeLines.length - 1;
+            }
+
+            window.prevQRCode = function () {
+                if (currentQRCodeIndex > 0) {
+                    currentQRCodeIndex--;
+                    showQRCode(currentQRCodeIndex);
+                }
+            };
+
+            window.nextQRCode = function () {
+                if (currentQRCodeIndex < qrcodeLines.length - 1) {
+                    currentQRCodeIndex++;
+                    showQRCode(currentQRCodeIndex);
+                }
+            };
+
+            function clearQRCodeDisplay() {
+                const outputDiv = document.getElementById('qrcodeContainer');
+                outputDiv.innerHTML = ""; // Limpa a saída anterior
+                currentQRCodeIndex = 0; // Reseta o índice atual
+                qrcodeLines = []; // Reseta a lista de QR Codes
+            }
         });
     </script>
 </body>
