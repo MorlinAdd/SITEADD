@@ -98,7 +98,12 @@
         }
 
         .qrcode {
-            margin: 10px;
+            margin: 20px 0; /* Espaçamento entre QR Codes */
+            text-align: center; /* Centraliza cada QR Code na lista */
+        }
+
+        ol {
+            padding-left: 20px; /* Adiciona recuo à lista */
         }
     </style>
 </head>
@@ -140,7 +145,7 @@
                 <option value="25">Alta (25%)</option>
                 <option value="30">Máxima (30%)</option>
             </select>
-            <input type="number" id="pixelsPerPoint" placeholder="Pixels por ponto" max="32" min="1" value="4" readonly>
+            <input type="number" id="pixelsPerPoint" placeholder="Pixels por ponto" max="32" min="1" value="10" readonly> <!-- Aumentado o valor padrão -->
             <input type="number" id="margin" placeholder="Margem em pixels" max="10" min="0" value="2" readonly>
             <button onclick="generateQRCodes()">Gerar QR Codes</button>
             <div class="output" id="output3"></div>
@@ -290,7 +295,8 @@
                 const margin = document.getElementById('margin').value;
                 const outputDiv = document.getElementById('output3');
 
-                outputDiv.innerHTML = ""; // Limpa a saída anterior
+                outputDiv.innerHTML = "<ol></ol>"; // Limpa a saída anterior e cria uma lista ordenada
+                const outputList = outputDiv.querySelector('ol');
 
                 const lines = textInput.split('\n').filter(line => line.trim() !== "");
                 if (lines.length > 1000) {
@@ -299,16 +305,16 @@
                 }
 
                 lines.forEach(line => {
-                    const qrcodeDiv = document.createElement('div');
+                    const qrcodeDiv = document.createElement('li'); // Usar <li> para lista
                     qrcodeDiv.className = 'qrcode';
                     $(qrcodeDiv).qrcode({
                         text: line,
-                        width: pixelsPerPoint * 10,
-                        height: pixelsPerPoint * 10,
+                        width: pixelsPerPoint * 10, // Tamanho do QR Code
+                        height: pixelsPerPoint * 10, // Tamanho do QR Code
                         margin: margin,
                         ecLevel: (redundancyLevel === "15" ? "M" : redundancyLevel === "25" ? "Q" : "H")
                     });
-                    outputDiv.appendChild(qrcodeDiv);
+                    outputList.appendChild(qrcodeDiv);
                 });
             }
 
