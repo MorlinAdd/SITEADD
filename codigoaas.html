@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html lang="pt">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Substituir Códigos</title>
+    <title>Auditoria de Códigos</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f9;
             padding: 20px;
         }
+
         .container {
             max-width: 600px;
             margin: auto;
@@ -18,98 +20,301 @@
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
-        h1 { text-align: center; color: #333; }
-        textarea, input[type="file"] { width: 100%; margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
-        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; cursor: pointer; margin-top: 10px; }
-        button:hover { background: #0056b3; }
-        .progress-bar { height: 20px; background: #007bff; border-radius: 5px; text-align: center; color: white; line-height: 20px; width: 0; }
-        .output { margin-top: 20px; padding: 10px; background: #e9ecef; border-radius: 5px; word-wrap: break-word; }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .tab {
+            display: none;
+        }
+
+        .tab.active {
+            display: block;
+        }
+
+        .tabs {
+            display: flex;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            text-align: center;
+            border: none;
+            border-radius: 5px 5px 0 0;
+        }
+
+        .tab-button:hover {
+            background: #0056b3;
+        }
+
+        textarea,
+        input[type="file"],
+        input[type="number"],
+        select {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background: #007bff;
+            border-radius: 5px;
+            text-align: center;
+            color: white;
+            line-height: 20px;
+            width: 0;
+        }
+
+        .output {
+            margin-top: 20px;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            word-wrap: break-word;
+        }
+
+        .qrcode {
+            margin: 10px;
+        }
     </style>
 </head>
+
 <body>
+
     <div class="container">
-        <h1>Substituir Códigos</h1>
-        <textarea id="consincoCodes" rows="5" placeholder="Digite os códigos Consinco..."></textarea>
-        <input type="file" id="uploadFile" accept=".xlsx">
-        <div>
-            <label><input type="checkbox" id="auditPresence"> Auditoria de Presença</label>
-            <label><input type="checkbox" id="auditTag"> Auditoria de Etiqueta</label>
+        <h1>Auditoria de Códigos</h1>
+        <div class="tabs">
+            <button class="tab-button" onclick="showTab('tab1')">Auditoria de Presença</button>
+            <button class="tab-button" onclick="showTab('tab2')">Auditoria de Etiqueta</button>
+            <button class="tab-button" onclick="showTab('tab3')">Gerar QR Code</button>
         </div>
-        <button onclick="processCodes()">Processar</button>
-        <button onclick="clearFields()">Limpar</button>
-        <button onclick="copyResults()">Copiar Resultados</button>
-        <div class="progress-bar" id="progressBar">0%</div>
-        <div class="output" id="output"></div>
+
+        <div id="tab1" class="tab active">
+            <textarea id="consincoCodes" rows="5" placeholder="Digite os códigos Consinco..."></textarea>
+            <input type="file" id="uploadFile" accept=".xlsx">
+            <button onclick="processCodes()">Processar</button>
+            <button onclick="clearFields('tab1')">Limpar</button>
+            <button onclick="copyResults('tab1')">Copiar Resultados</button>
+            <div class="progress-bar" id="progressBar1">0%</div>
+            <div class="output" id="output1"></div>
+        </div>
+
+        <div id="tab2" class="tab">
+            <textarea id="consincoCodesVerificacao" rows="5" placeholder="Digite os códigos Consinco..."></textarea>
+            <input type="file" id="uploadFileVerificacao" accept=".xlsx">
+            <button onclick="processVerificationCodes()">Processar Verificação</button>
+            <button onclick="clearFields('tab2')">Limpar</button>
+            <button onclick="copyResults('tab2')">Copiar Resultados</button>
+            <div class="progress-bar" id="progressBar2">0%</div>
+            <div class="output" id="output2"></div>
+        </div>
+
+        <div id="tab3" class="tab">
+            <textarea id="qrcodeText" rows="5" placeholder="Cole ou digite o texto aqui..."></textarea>
+            <select id="redundancyLevel">
+                <option value="15">Média (15%)</option>
+                <option value="25">Alta (25%)</option>
+                <option value="30">Máxima (30%)</option>
+            </select>
+            <input type="number" id="pixelsPerPoint" placeholder="Pixels por ponto" max="32" min="1" value="4" readonly>
+            <input type="number" id="margin" placeholder="Margem em pixels" max="10" min="0" value="2" readonly>
+            <button onclick="generateQRCodes()">Gerar QR Codes</button>
+            <div class="output" id="output3"></div>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
     <script>
-        function processCodes() {
-            const input = document.getElementById('consincoCodes').value;
-            const fileInput = document.getElementById('uploadFile').files[0];
-            const outputDiv = document.getElementById('output');
-            const progressBar = document.getElementById('progressBar');
-            const auditTag = document.getElementById('auditTag').checked;
-            if (!input) return alert("Insira os códigos Consinco.");
-            if (!fileInput) return alert("Carregue um arquivo XLSX.");
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(sheet);
-                
-                const mapping = jsonData.reduce((acc, row) => {
-                    if (row["Consinco"] && row["Código Pesaveis"]) {
-                        acc[row["Consinco"].toString().trim()] = row["Código Pesaveis"].toString().trim();
-                    }
-                    return acc;
-                }, {});
-                
-                const codes = input.split('\n').map(code => code.trim()).filter(code => code);
-                outputDiv.innerHTML = "";
-                let processed = 0;
-                
-                codes.forEach((code, index) => {
-                    setTimeout(() => {
-                        let result = mapping[code] || `${code}0001`;
-                        if (auditTag) {
-                            const randomNum = Math.floor(Math.random() * 90 + 10);
-                            result = `:p:${code}:vp:${randomNum}`;
-                        }
-                        outputDiv.innerHTML += `<div>${result}</div>`;
-                        processed++;
-                        progressBar.style.width = `${(processed / codes.length) * 100}%`;
-                        progressBar.textContent = `${Math.floor((processed / codes.length) * 100)}%`;
-                    }, index * 100);
+        document.addEventListener('DOMContentLoaded', function () {
+            function showTab(tabId) {
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.classList.remove('active');
                 });
-            };
-            reader.readAsArrayBuffer(fileInput);
-        }
-
-        function clearFields() {
-            document.getElementById('consincoCodes').value = "";
-            document.getElementById('output').innerHTML = "";
-            document.getElementById('progressBar').style.width = "0%";
-            document.getElementById('progressBar').textContent = "0%";
-        }
-
-        function copyResults() {
-            const outputDiv = document.getElementById('output');
-            const range = document.createRange();
-            range.selectNode(outputDiv);
-            window.getSelection().removeAllRanges();
-            window.getSelection().addRange(range);
-            
-            try {
-                document.execCommand('copy');
-                alert('Resultados copiados para a área de transferência!');
-            } catch (err) {
-                alert('Erro ao copiar resultados.');
+                document.getElementById(tabId).classList.add('active');
             }
-            window.getSelection().removeAllRanges();
-        }
+
+            window.showTab = showTab; // Make showTab accessible globally
+
+            function processCodes() {
+                const input = document.getElementById('consincoCodes').value;
+                const fileInput = document.getElementById('uploadFile').files[0];
+                const outputDiv = document.getElementById('output1');
+                const progressBar = document.getElementById('progressBar1');
+
+                if (!input) return alert("Insira os códigos Consinco.");
+                if (!fileInput) return alert("Carregue um arquivo XLSX.");
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+                    const mapping = jsonData.reduce((acc, row) => {
+                        if (row["Consinco"] && row["Código Pesaveis"]) {
+                            acc[row["Consinco"].toString().trim()] = row["Código Pesaveis"].toString().trim();
+                        }
+                        return acc;
+                    }, {});
+
+                    const codes = input.split('\n').map(code => code.trim()).filter(code => code);
+                    outputDiv.innerHTML = "";
+                    let processed = 0;
+
+                    codes.forEach((code, index) => {
+                        setTimeout(() => {
+                            let result = mapping[code] || `${code}0001`;
+                            outputDiv.innerHTML += `<div>${result}</div>`;
+                            processed++;
+                            progressBar.style.width = `${(processed / codes.length) * 100}%`;
+                            progressBar.textContent = `${Math.floor((processed / codes.length) * 100)}%`;
+                        }, index * 100);
+                    });
+                };
+                reader.readAsArrayBuffer(fileInput);
+            }
+
+            window.processCodes = processCodes; // Make processCodes accessible globally
+
+            function processVerificationCodes() {
+                const input = document.getElementById('consincoCodesVerificacao').value;
+                const fileInput = document.getElementById('uploadFileVerificacao').files[0];
+                const outputDiv = document.getElementById('output2');
+                const progressBar = document.getElementById('progressBar2');
+
+                if (!input) return alert("Insira os códigos Consinco.");
+                if (!fileInput) return alert("Carregue um arquivo XLSX.");
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+                    const mapping = jsonData.reduce((acc, row) => {
+                        if (row["Código"] && row["Verificador"]) {
+                            acc[row["Código"].toString().trim()] = row["Verificador"].toString().trim();
+                        }
+                        return acc;
+                    }, {});
+
+                    const codes = input.split('\n').map(code => code.trim()).filter(code => code);
+                    outputDiv.innerHTML = "";
+                    let processed = 0;
+
+                    codes.forEach((code, index) => {
+                        setTimeout(() => {
+                            let result = mapping[code] || `${code}0001`;
+                            result = `:p:${code}:vp:${mapping[code] || "VERIFICADOR NÃO ENCONTRADO"}`;
+                            outputDiv.innerHTML += `<div>${result}</div>`;
+                            processed++;
+                            progressBar.style.width = `${(processed / codes.length) * 100}%`;
+                            progressBar.textContent = `${Math.floor((processed / codes.length) * 100)}%`;
+                        }, index * 100);
+                    });
+                };
+                reader.readAsArrayBuffer(fileInput);
+            }
+
+            window.processVerificationCodes = processVerificationCodes; // Make processVerificationCodes accessible globally
+
+            function clearFields(tab) {
+                if (tab === 'tab1') {
+                    document.getElementById('consincoCodes').value = "";
+                    document.getElementById('output1').innerHTML = "";
+                    document.getElementById('progressBar1').style.width = "0%";
+                    document.getElementById('progressBar1').textContent = "0%";
+                } else if (tab === 'tab2') {
+                    document.getElementById('consincoCodesVerificacao').value = "";
+                    document.getElementById('output2').innerHTML = "";
+                    document.getElementById('progressBar2').style.width = "0%";
+                    document.getElementById('progressBar2').textContent = "0%";
+                } else {
+                    document.getElementById('qrcodeText').value = "";
+                    document.getElementById('output3').innerHTML = "";
+                }
+            }
+
+            window.clearFields = clearFields; // Make clearFields accessible globally
+
+            function copyResults(tab) {
+                const outputDiv = tab === 'tab1' ? document.getElementById('output1') : tab === 'tab2' ? document.getElementById('output2') : document.getElementById('output3');
+                const range = document.createRange();
+                range.selectNode(outputDiv);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+
+                try {
+                    document.execCommand('copy');
+                    alert('Resultados copiados para a área de transferência!');
+                } catch (err) {
+                    alert('Erro ao copiar resultados.');
+                }
+                window.getSelection().removeAllRanges();
+            }
+
+            window.copyResults = copyResults; // Make copyResults accessible globally
+
+            function generateQRCodes() {
+                const textInput = document.getElementById('qrcodeText').value;
+                const redundancyLevel = document.getElementById('redundancyLevel').value;
+                const pixelsPerPoint = document.getElementById('pixelsPerPoint').value;
+                const margin = document.getElementById('margin').value;
+                const outputDiv = document.getElementById('output3');
+
+                outputDiv.innerHTML = ""; // Limpa a saída anterior
+
+                const lines = textInput.split('\n').filter(line => line.trim() !== "");
+                if (lines.length > 1000) {
+                    alert("Máximo de 1000 linhas permitido.");
+                    return;
+                }
+
+                lines.forEach(line => {
+                    const qrcodeDiv = document.createElement('div');
+                    qrcodeDiv.className = 'qrcode';
+                    $(qrcodeDiv).qrcode({
+                        text: line,
+                        width: pixelsPerPoint * 10,
+                        height: pixelsPerPoint * 10,
+                        margin: margin,
+                        ecLevel: (redundancyLevel === "15" ? "M" : redundancyLevel === "25" ? "Q" : "H")
+                    });
+                    outputDiv.appendChild(qrcodeDiv);
+                });
+            }
+
+            window.generateQRCodes = generateQRCodes; // Make generateQRCodes accessible globally
+        });
     </script>
 </body>
+
 </html>
